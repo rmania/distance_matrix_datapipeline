@@ -1,257 +1,208 @@
 **create a df_edges_ams table**
 
 ```
-drop table if exists osm.df_edges_ams2;
-create table osm.df_edges_ams2 (
-	area text,
-	bridge text,
-	geometry text,
-	fclass text,
-	junction text,
-	"key" int4,
-	lanes text,
-	length numeric,
-	"level" int4,
-	maxspeed text,
-	maxweight text,
-	"name" text,
-	oneway boolean,
-	osmid text,
-	"ref" text,
-	service text,
-	tunnel text
-	)
-
-
-SELECT UpdateGeometrySRID('osm', 'df_edges_ams','geometry',28992);
-
-alter table osm.df_edges_ams
-	alter column geometry type geometry(LINESTRING, 28992)
-		using ST_setSRID(geometry, 28992)
-
-create index df_edges_ams_GIDX on osm.df_edges_ams using GIST(geometry);
-vacuum analyse osm.df_edges_ams;
-```
-
-```
--- ============================================================
--- table with layer not 0
--- ============================================================
-drop table if exists osm.stag_osm_topology;
-CREATE TABLE osm.stag_osm_topology (
+drop table if exists osm.weg_gestruct_merged_final_incl_vot;
+CREATE TABLE osm.weg_gestruct_merged_final_incl_vot (
     id int8,
-	osm_id int8 NULL,
-	--code int4 NULL,
-	fclass varchar(28) NULL,
-	streetname varchar(100) NULL,
-	oneway varchar(10) NULL,
+	cat int4,
+    osm_id int8 NULL,
+	fclass text NULL,
+	"name" text NULL,
+	"ref" text NULL,
+	oneway text NULL,
 	maxspeed text NULL,
-	layer int2 NULL,
-	bridge varchar(10) NULL,
-	tunnel varchar(10) NULL,
-	linelength numeric,
-    CONSTRAINT stag_osm_topology_pk PRIMARY KEY (id)
+	layer text NULL,
+	bridge text NULL,
+	tunnel text NULL,
+	linelength numeric null,
+    CONSTRAINT stag_osm_topology_pk2 PRIMARY KEY (id)
 )
 WITH (OIDS=FALSE);
 --
-SELECT AddGeometryColumn('osm','stag_osm_topology', 'geom', 28992, 'GEOMETRY', 2);
+SELECT AddGeometryColumn('osm','weg_gestruct_merged_final_incl_vot', 'geom', 28992, 'GEOMETRY', 2);
+--SELECT AddGeometryColumn('osm','weg_gestruct_merged_final_incl_vot', 'linelength', 28992, 'GEOMETRY', 2);
+------------------
 
---
+-- create sequence
 drop sequence if exists seq_stag_osm_fid;
-create sequence seq_stag_osm_fid start 1;
-
-insert into osm.stag_osm_topology (
+create sequence seq_stag_osm_fid start 1;	
+-- insert 1 from weg_gestruct_merged_final LAYER 0
+insert into osm.weg_gestruct_merged_final_incl_vot (
 	select
     	nextval('seq_stag_osm_fid'),
-		cast(osmid as double precision),
---		code,
+		cat,
+		cast(osm_id as double precision),
 		fclass,
-		"name" as streetname,
+		"name", --as streetname,
+		"ref",
 		oneway,
 		maxspeed::text,
-		"level"::int2 as layer,
+		layer,
 		bridge,
 		tunnel,
-    	st_Length(geometry) "length",
-    	ST_setSRID(geometry, 28992) as geom
+		st_length(geom) as linelength,
+     	ST_setSRID(geom, 28992) as geom
 from
-	osm.df_edges_ams
-where "level" = '0'
-);
+	osm.weg_gestruct_merged_final where layer = '0');
 
-```
+create index weg_final_incl_vot_GIDX on osm.weg_gestruct_merged_final_incl_vot using GIST(geom);
+vacuum analyse osm.weg_gestruct_merged_final_incl_vot;
 
-```
--- add inzamellocaties poi, conenct to street network
-insert into osm.stag_osm_topology
+create index stag_vot_clusters_GIDX on osm.stag_vot_clusters_grass using GIST(cl_geom);
+vacuum analyse osm.stag_vot_clusters_grass;
+
+-- add poi1 --> clustered VOT/LPG, connect to street network
+insert into osm.weg_gestruct_merged_final_incl_vot
 (select distinct on (loc_id)
     nextval('seq_stag_osm_fid'),
-	osmid,
-	--code,
-	'inzamelloc_link' fclass,
-	streetname,
+	cat,
+    osm_id,
+	'vot_link' fclass, --clustered vot
+	"name",
+	"ref",
 	oneway,
 	maxspeed,
-	"level",
+	layer,
 	bridge,
 	tunnel,
-    linelength,
-    geomline as geom
+	linelength,
+	geomline as geom
 --
 from (
 	SELECT 
-		loc.cluster_id loc_id,  
-    	--edg.id as id,
-	    ST_ShortestLine(loc.geom_inzamelloc, edg.geometry) geomline,
-	    st_length(ST_ShortestLine(loc.geom_inzamelloc,edg.geometry)) linelength,
-	    osmid::int8,
-	    --code,
-	    fclass,
-	    "name" as streetname,
-	    oneway,
-	    maxspeed,
-	    "level",
-	    bridge,
-	    tunnel
-	FROM service_afvalcontainers.stag_inzamellocaties loc
+		loc.cluster_toewijzing as loc_id,  
+		cat,
+		osm_id::int8,
+      	fclass,
+    	"name",
+    	"ref",
+		oneway,
+		maxspeed,
+		layer,
+		bridge,
+		tunnel,
+		st_length(ST_ShortestLine(loc.cl_geom, edg.geom)) linelength,
+	    ST_ShortestLine(loc.cl_geom, edg.geom) geomline
+	FROM osm.stag_vot_clusters_grass loc
 	join 
-		osm.df_edges_ams edg on ST_Dwithin(loc.geom_inzamelloc,edg.geometry,100)
-	where level= '0'
-	) prj
-order by loc_id, linelength asc
-);
--- indices and vaccum
-create index stag_osm_topology_gidx on osm.stag_osm_topology using GIST(geom);
-vacuum analyze osm.stag_osm_topology;
-```
+		osm.weg_gestruct_merged_final edg on ST_Dwithin(loc.cl_geom, edg.geom, 100)
+	where layer= '0' ) prj
+order by loc_id, linelength asc);	
 
-```
--- ============================================================
--- table with layer not 0
--- ============================================================
+-------------------------------
+
+-- a regular grid of polygons/squares of given size
+CREATE OR REPLACE FUNCTION ST_CreateFishnet(
+        nrow integer, 
+        ncol integer,
+        xsize float8, 
+        ysize float8,
+        x0 float8 DEFAULT 0, 
+        y0 float8 DEFAULT 0,
+        OUT "row" integer, OUT col integer,
+        OUT geom geometry)
+    RETURNS SETOF record AS
+$$
+SELECT i + 1 AS row, j + 1 AS col, ST_Translate(cell, j * $3 + $5, i * $4 + $6) AS geom
+FROM generate_series(0, $1 - 1) AS i,
+     generate_series(0, $2 - 1) AS j,
+(
+SELECT ('POLYGON((0 0, 0 '||$4||', '||$3||' '||$4||', '||$3||' 0,0 0))')::geometry AS cell
+) AS foo;
+$$ LANGUAGE sql IMMUTABLE STRICT;
+
+-- Thanks to Mike T.
+-- https://gis.stackexchange.com/questions/16374/creating-regular-polygon-grid-in-postgis
 --
-drop table if exists osm.stag_osm_topology_lev;
-CREATE TABLE osm.stag_osm_topology_lev (
-    id int8,
-	osm_id int8 NULL,
-	--code int4 NULL,
-	fclass varchar(28) NULL,
-	streetname varchar(100) NULL,
-	oneway varchar(10) NULL,
-	maxspeed text NULL,
-	layer int2 NULL,
-	bridge varchar(20) NULL,
-	tunnel varchar(20) NULL,
-    linelength numeric
-)
-WITH (
-	OIDS=FALSE
-) ;
+-- linksonder: 108000,476000
+-- 3 kolommen van 9km, 2 rijen van 9 km
+-- breedte DX: 27 km, hoogte DY: 18 km
 --
-SELECT AddGeometryColumn( 'osm','stag_osm_topology_lev', 'geom', 28992, 'GEOMETRY', 2);
---
-insert into osm.stag_osm_topology_lev
-(select
-    nextval('seq_stag_osm_fid'),
-	cast(osmid as double precision),
-	--code,
-	fclass,
-	"name" as streetname,
-	oneway,
-	maxspeed::text,
-	"level"::int2 as layer,
-	bridge,
-	tunnel,
-    st_Length(geometry) linelength,
-    geometry as geom
-from
-	osm.df_edges_ams
-where "level" != '0'
-);
---
---
-insert into osm.stag_osm_topology_lev
-(select distinct on (loc_id)
-    nextval('seq_stag_osm_fid'),
-	osmid,
-	--code,
-	'inzamelloc_link' fclass,
-	streetname,
+drop table if exists osm.grid_osm_adam;
+create table osm.grid_osm_adam as (
+SELECT 
+    row::varchar || col::varchar id,
+    row,
+    col,
+    ST_setSrid(geom,28992) geom
+FROM 
+    ST_CreateFishnet(2, 3, 9000, 9000,108000,476000) AS adam_grid);
+    
+-- join grid on level=0
+drop table if exists osm.weg_gestruct_merged_final_clip_mv;
+create table osm.weg_gestruct_merged_final_clip_mv as (
+select
+	grd.id as grid_id,	
+	weg.id,
+	cat,
+	osm_id,
+    fclass,
+    "name",
+    "ref",
 	oneway,
 	maxspeed,
-	"level",
+	layer,
 	bridge,
 	tunnel,
-    linelength,
-    geomline as geom
---
-from (
-	SELECT 
-		loc.cluster_id as loc_id, 
-        --edg.id as id,    
-	    ST_ShortestLine(loc.geom_inzamelloc,edg.geometry) geomline,
-	    st_length(ST_ShortestLine(loc.geom_inzamelloc,edg.geometry)) linelength,
-	    osmid::int8,
-	    --code,
-	    fclass,
-	    "name" as streetname,
-	    oneway,
-	    maxspeed,
-	    "level",
-	    bridge,
-	    tunnel
-	FROM 
-            service_afvalcontainers.stag_inzamellocaties loc
-	join 
-            osm.df_edges_ams edg on ST_Dwithin(loc.geom_inzamelloc,edg.geometry,100)
-        where "level" !=0
-	) prj
-order by loc_id, linelength asc
-);
--- indices and vaccum
-create index stag_osm_topology_lev_gidx on osm.stag_osm_topology_lev using GIST(geom);
-vacuum analyze osm.stag_osm_topology_lev;
-```
+	linelength,
+	ST_Intersection(weg.geom,grd.geom) geom
+from
+	osm.weg_gestruct_merged_final_incl_vot weg
+join
+   osm.grid_osm_adam grd
+   on ST_intersects(weg.geom,grd.geom)   
+where layer = '0' order by grid_id asc);
+--ALTER SEQUENCE serial RESTART WITH 0;
 
-```
--- create topology with postgis topology engine
---- CreateTopology(varchar topology_schema_name, integer srid, double precision prec, boolean hasz);
-select topology.CreateTopology('ams_topo', 28992 , 0.5 , false);
+
+-- split base table into separate tables based on grid_id
+-- 11,12,13,21,22,23,*/
+-- onderstaande moet natuurlijk netjes in een loop...
+drop table if exists osm.weg_gestruct_merged_final_clip_mv_11;
+drop table if exists osm.weg_gestruct_merged_final_clip_mv_12;
+drop table if exists osm.weg_gestruct_merged_final_clip_mv_13;
+drop table if exists osm.weg_gestruct_merged_final_clip_mv_21;
+drop table if exists osm.weg_gestruct_merged_final_clip_mv_22;
+drop table if exists osm.weg_gestruct_merged_final_clip_mv_23;
 --
+create table osm.weg_gestruct_merged_final_clip_mv_11 as (
+	select * from osm.weg_gestruct_merged_final_clip_mv 
+	where grid_id='11');
+create table osm.weg_gestruct_merged_final_clip_mv_12 as (
+	select * from osm.weg_gestruct_merged_final_clip_mv 
+	where grid_id='12');
+create table osm.weg_gestruct_merged_final_clip_mv_13 as (
+	select * from osm.weg_gestruct_merged_final_clip_mv 
+	where grid_id='13');
+create table osm.weg_gestruct_merged_final_clip_mv_21 as 
+	(select * from osm.weg_gestruct_merged_final_clip_mv 
+	where grid_id='21');
+create table osm.weg_gestruct_merged_final_clip_mv_22 as 
+	(select * from osm.weg_gestruct_merged_final_clip_mv 
+	where grid_id='22');
+create table osm.weg_gestruct_merged_final_clip_mv_23 as 
+	(select * from osm.weg_gestruct_merged_final_clip_mv 
+	where grid_id='23');
+
+-- TOPOLOGICAL STRUCTURING ON 1 GRID
+-- drop topology
+SELECT topology.DropTopology('osm_topo');--
+-- CreateTopology(varchar topology_schema_name, integer srid, double precision prec, boolean hasz);
+select topology.CreateTopology('osm_topo', 28992 ,1 ,false);	
+
 -- build topology for level = 0
 -- AddTopoGeometryColumn(varchar topology_name, varchar schema_name, varchar table_name, varchar column_name, varchar feature_type);
-select topology.AddTopoGeometryColumn('ams_topo' ,'osm' ,'stag_osm_topology' ,'topo_geom' ,'LINESTRING');
--- toTopoGeom(geometry geom, varchar toponame, integer layer_id, float8 tolerance);
-UPDATE osm.stag_osm_topology SET topo_geom = topology.toTopoGeom(geom, 'ams_topo', 1, 0.25);
-```
+select topology.AddTopoGeometryColumn('osm_topo' ,'osm' ,'weg_gestruct_merged_final_clip_mv_11' ,'topo_geom' ,'LINESTRING');
 
-to see the topology tables type:
-```
-SELECT * FROM information_schema.tables 
-WHERE table_schema = 'ams_topo';
-```
 
-error message with precision .25
-```
-Query execution failed
+create index weg_gestruct_merged_final_clip_mv_11_GIDX on osm.weg_gestruct_merged_final_clip_mv_11 using GIST(geom);
+vacuum analyse osm.weg_gestruct_merged_final_clip_mv_11;
+--
+--UPDATE osm.weg_gestruct_merged_final_clip_mv_22 SET topo_geom = topology.toTopoGeom(geom, 'osm_topo', 1, 0.5);
 
-Reason:
-SQL Error [XX000]: ERROR: SQL/MM Spatial exception - geometry crosses edge 48484
-  Where: PL/pgSQL function totopogeom(geometry,topogeometry,double precision) line 114 at FOR over SELECT rows
-PL/pgSQL function totopogeom(geometry,character varying,integer,double precision) line 89 at assignment
-```
+--select count(*) from osm.weg_gestruct_merged_final_clip_mv_22;
 
-error message with precision .5
-```
-Query execution failed
-
-Reason:
-SQL Error [XX000]: ERROR: SQL/MM Spatial exception - curve not simple
-  Where: PL/pgSQL function totopogeom(geometry,topogeometry,double precision) line 114 at FOR over SELECT rows
-PL/pgSQL function totopogeom(geometry,character varying,integer,double precision) line 89 at assignment
-```
-
-```
+--exp
 drop table if exists osm.log_errors;
 create table osm.log_errors (
 	id bigint,
@@ -264,10 +215,11 @@ create sequence seq_log_fid start 1;
 DO $$DECLARE r record;
 timestamp_log timestamp;
 BEGIN
-  FOR r IN SELECT * FROM osm.stag_osm_topology LOOP
+  FOR r IN SELECT * FROM osm.weg_gestruct_merged_final_clip_mv_11 LOOP
     begin
+	  raise notice 'Value: %', r;
 	  timestamp_log := now();   
-      UPDATE osm.stag_osm_topology SET topo_geom = topology.toTopoGeom(geom, 'ams_topo', 1, 0.5)
+      UPDATE osm.weg_gestruct_merged_final_clip_mv_11 SET topo_geom = topology.toTopoGeom(geom, 'osm_topo', 1, 0.5)
       WHERE id = r.id;
     EXCEPTION
       WHEN OTHERS then
@@ -280,52 +232,4 @@ BEGIN
     END;
   END LOOP;
 END$$;
-
-```
-** stag-ams_cleaned**
-```
--- topology fixed for level 0 which is sufficient for most purposes, 
--- now combine the new geometry with the original attributes
-drop table if exists osm.stag_ams_cleaned;
-create table osm.stag_ams_cleaned as (
-select
-	top.id,
-	top.osm_id,
-	--top.code,
-	top.fclass,
-	top.streetname,
-	top.oneway,
-	top.maxspeed,
-	top.layer,
-	top.bridge,
-	top.tunnel,
-	st_length(edg.geom) linelength,
-	edg.geom
-from
-	ams_topo.edge_data edg   --ipv ams_topo.edge 
-join
-    ams_topo.relation rel on edg.edge_id = rel.element_id
-join 
-    osm.stag_osm_topology top on rel.topogeo_id = top.id
-)
-union all
---
-select
-	id,
-	osm_id,
-	--code,
-	fclass,
-	streetname,
-	oneway,
-	maxspeed,
-	layer,
-	bridge,
-	tunnel,
-	linelength,
-	geom
-from
-	osm.stag_osm_topology_lev;
---
-create index stag_osm_cleaned_gidx on osm.stag_ams_cleaned using GIST(geom);
-vacuum analyze osm.stag_ams_cleaned;
 ```
