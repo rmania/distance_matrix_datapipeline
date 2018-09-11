@@ -110,8 +110,7 @@ def dbscan_reduce(df, x='x', y='y'):
     
     cluster_labels = db.labels_
     num_clusters = len(set(cluster_labels))
-    print('No clusters: {:,}'.format(num_clusters))
-    
+       
     clusters = pd.Series([coords[cluster_labels==n] for n in range(num_clusters)])
     
     # find point in each cluster closest to its centroid
@@ -187,16 +186,16 @@ def get_afvalcontainers_df(column_subset=None, dbscan_clustering=None):
     df = df[((df.x >= 110000) & (df.x <= 135000) & 
              (df.y >= 475000) & (df.y <= 494000))]
     
-    logger.info("Non-clustered GeoDataFrame has shape: {} and crs: {}".format(
-                 df.shape, crs))
-    
     if dbscan_clustering:
-        df_clustered = dbscan_reduce(df=test)
+        df_clustered = dbscan_reduce(df=df)
         
         logger.info("Clustered GeoDataFrame has shape: {} and crs: {}".format(
                    df_clustered.shape, df_clustered.crs))
         
         return df_clustered
+    
+    logger.info("Non-clustered GeoDataFrame has shape: {} and crs: {}".format(
+                 df.shape, crs))
     
     return df
 
