@@ -1,0 +1,41 @@
+---
+# paths --
+path:
+    data_path_poi1: ../data/base_poi/
+    data_path_poi2: ../data/poi2/
+    data_path_brp: ../data/BRP/
+    output_path: ../output/
+
+# files --
+file:
+    bag_full : 'bag_full.csv'
+    bag_clusters: 'bag_cluster.csv'
+    ah : 'ah_vestigingen.csv'
+    oba : 'oba_vestigingen.csv'
+    vot18: 'stag_adres18.csv'
+    vot65: 'stag_adres65.csv'
+    
+# crs --    
+crs:
+    crs_4326: {'init' : 'epsg:4326'}
+    crs : {'init': 'epsg:28992'}
+
+# get Bammenservice afvalcontainers GeoJson
+afvalcontainers:
+    url: 'https://map.data.amsterdam.nl/maps/afval?REQUEST=GetFeature'
+    # parameters for afvalcontainer WFS found at api.data.amsterdam.nl
+    params:
+     Typename: 'ms:container_coordinaten'
+     SERVICE: 'wfs'
+     version: '1.1.0'
+     outputFormat: 'GeoJson'
+     srsname: 'epsg:4326'
+    fracties: ['Rest', 'Papier', 'Glas', 'Plastic', 'Textiel']
+
+# parameters DBSCAN algorithm afvalcontainers
+dbscan:
+    params:
+     eps: 9
+     min_samples: 1
+     algorithm: 'ball_tree'
+     metric: 'euclidean'
