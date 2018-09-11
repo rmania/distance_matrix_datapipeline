@@ -30,9 +30,13 @@ p2 = Path(yml['path']['data_path_poi2'])
 crs= yml['crs']['crs']
 
 
+### convencience fucntion to list available POI files
+def list_poi_files():
+    print (yml['file'])
+
+
 ### function to get other BAG FILE 
-def get_df1(path, bag_file, add_brp_18 = None, add_brp_65 = None, 
-            see_file_options = None, plot=None):
+def get_df1(path, bag_file, add_brp_18 = None, add_brp_65 = None, plot=None):
     """
     load bag data with or w/o 18/65 additional info
     args:
@@ -84,10 +88,6 @@ def get_df1(path, bag_file, add_brp_18 = None, add_brp_65 = None,
         else:
             print ('add_brp_65 not applicable to bag_clusters dataset')
             
-    
-    if see_file_options:
-        [print (i) for i in yml['file'].values()];
-    
     if plot:
         n=1000
         fig, ax = plt.subplots(figsize=[15,7])
@@ -201,7 +201,7 @@ def get_afvalcontainers_df(column_subset=None, dbscan_clustering=None):
 
 
 ### Functions to get other POI2 dataframes to calculate distance from
-def get_df2(path, file, see_file_options = bool, plot=bool):
+def get_df2(path, file, plot=bool):
     
     """
     load dataframe with the second poi geometries
@@ -235,9 +235,6 @@ def get_df2(path, file, see_file_options = bool, plot=bool):
         logger.info("created {} meter buffer around {} geometry".format(
         buffer, df.geometry.geom_type[0]))
 
-    if see_file_options:
-        [print (i) for i in yml['file'].values()];
-    
     if plot:
         fig, ax = plt.subplots(figsize=[15,7])
         ax = std.plot(ax=ax)
