@@ -273,7 +273,7 @@ def get_df2(path, file, plot=bool):
     return df
 
 
-### some quick helpers to load in the stag_tables
+### some quick helpers to load in the stag_tables csv and back into geoframes
 def get_stag_table_huur():
     df = pd.read_csv(yml['path']['data_stag_tables'] + yml['file_stag_tables']['clusters_huur'], dtype=str)
     df['geometry'] = df['geometry'].apply(lambda x: wkt.loads(x))

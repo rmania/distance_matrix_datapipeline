@@ -6,6 +6,7 @@ path:
     data_path_brp: ../data/BRP/
     output_path: ../output/
     data_stag_tables: ../data/stag_tables/
+    distance_matrices: ../data/distance_matrices/
 
 
 # files --
@@ -22,6 +23,14 @@ file_stag_tables:
     clusters65: 'vot_clusters_65.csv'
     clusters_huur: 'vot_clusters_huur.csv'
     clusters_koop: 'vot_clusters_koop.csv'
+    inzamelloc: 'inzamelloc.csv'
+    
+distance_matrix_files:
+    distance_huur_papier: 'distance_huur_papier.csv'
+    distance_huur_glas: 'distance_huur_glas.csv'
+    distance_huur_textiel: 'distance_huur_textiel.csv'
+    distance_huur_plastic: 'distance_huur_plastic.csv'
+    distance_huur_rest: 'distance_huur_rest.csv'
 
 # crs --    
 crs:
@@ -56,6 +65,7 @@ dbscan_vot:
      algorithm: 'ball_tree'
      metric: 'euclidean'
 
+# afstandsnormen Gemeente Amsterdam per fractie
 normen:
     papier:
      doel_start: 0
@@ -63,29 +73,34 @@ normen:
      aandacht_start: 200
      aandacht_end: 300
      kritiek_start: 300
+     bovengrens: 301
     glas:
      doel_start: 0
      doel_end: 300
      aandacht_start: 300
      aandacht_end: 400
      kritiek_start: 400
+     bovengrens: 401
     plastic:
      doel_start: 0
      doel_end: 250
      aandacht_start: 250
      aandacht_end: 350
      kritiek_start: 350
+     bovengrens: 351
     textiel:
      doel_start: 0
      doel_end: 750
      aandacht_start: 750
      aandacht_end: 1500
      kritiek_start: 1500
+     bovengrens: 1501
     rest:
      doel_start: 0
      doel_end: 100
      aandacht_start: 100
      aandacht_end: 200
      kritiek_start: 200
-     
+     bovengrens: 201
+
      
