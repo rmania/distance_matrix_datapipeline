@@ -21,7 +21,7 @@ file_stag_tables:
     clusters18: 'vot_clusters_18.csv'
     clusters65: 'vot_clusters_65.csv'
     clusters_huur: 'vot_clusters_huur.csv'
-    clusters_koop: 'vot_clusters_18.csv'
+    clusters_koop: 'vot_clusters_koop.csv'
 
 # crs --    
 crs:

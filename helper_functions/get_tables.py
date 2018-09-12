@@ -217,7 +217,7 @@ def get_afvalcontainers_df(column_subset=None, dbscan_clustering=None):
              (df.y >= 475000) & (df.y <= 494000))]
     
     if dbscan_clustering:
-        df_clustered = dbscan_reduce(df=df)
+        df_clustered = dbscan_reduce_afvalcontainers(df=df)
         
         logger.info("Clustered GeoDataFrame has shape: {} and crs: {}".format(
                    df_clustered.shape, df_clustered.crs))
@@ -270,4 +270,38 @@ def get_df2(path, file, plot=bool):
         ax = std.plot(ax=ax)
         df.plot(ax=ax, color='red', alpha=.5, marker = '*')
         gpd.GeoSeries(df.geometry.buffer(buffer)).plot(ax=ax, color='yellow', alpha=.085)
+    return df
+
+
+### some quick helpers to load in the stag_tables
+def get_stag_table_huur():
+    df = pd.read_csv(yml['path']['data_stag_tables'] + yml['file_stag_tables']['clusters_huur'], dtype=str)
+    df['geometry'] = df['geometry'].apply(lambda x: wkt.loads(x))
+    df['pnd_geom'] = df['pnd_geom'].apply(lambda x: wkt.loads(x))
+    df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
+    
+    return df
+
+def get_stag_table_koop():
+    df = pd.read_csv(yml['path']['data_stag_tables'] + yml['file_stag_tables']['clusters_koop'], dtype=str)
+    df['geometry'] = df['geometry'].apply(lambda x: wkt.loads(x))
+    df['pnd_geom'] = df['pnd_geom'].apply(lambda x: wkt.loads(x))
+    df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
+    
+    return df
+
+def get_stag_table18():
+    df = pd.read_csv(yml['path']['data_stag_tables'] + yml['file_stag_tables']['clusters18'], dtype=str)
+    df['geometry'] = df['geometry'].apply(lambda x: wkt.loads(x))
+    df['pnd_geom'] = df['pnd_geom'].apply(lambda x: wkt.loads(x))
+    df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
+    
+    return df
+
+def get_stag_table65():
+    df = pd.read_csv(yml['path']['data_stag_tables'] + yml['file_stag_tables']['clusters65'], dtype=str)
+    df['geometry'] = df['geometry'].apply(lambda x: wkt.loads(x))
+    df['pnd_geom'] = df['pnd_geom'].apply(lambda x: wkt.loads(x))
+    df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
+    
     return df
