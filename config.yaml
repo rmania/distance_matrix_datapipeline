@@ -5,6 +5,8 @@ path:
     data_path_poi2: ../data/poi2/
     data_path_brp: ../data/BRP/
     output_path: ../output/
+    data_stag_tables: ../data/stag_tables/
+
 
 # files --
 file:
@@ -14,7 +16,13 @@ file:
     oba : 'oba_vestigingen.csv'
     vot18: 'stag_adres18.csv'
     vot65: 'stag_adres65.csv'
-    
+
+file_stag_tables:
+    clusters18: 'vot_clusters_18.csv'
+    clusters65: 'vot_clusters_65.csv'
+    clusters_huur: 'vot_clusters_huur.csv'
+    clusters_koop: 'vot_clusters_18.csv'
+
 # crs --    
 crs:
     crs_4326: {'init' : 'epsg:4326'}
@@ -33,9 +41,51 @@ afvalcontainers:
     fracties: ['Rest', 'Papier', 'Glas', 'Plastic', 'Textiel']
 
 # parameters DBSCAN algorithm afvalcontainers
-dbscan:
+dbscan_afvalcontainers:
     params:
      eps: 9
      min_samples: 1
      algorithm: 'ball_tree'
      metric: 'euclidean'
+
+# parameters DBSCAN algorithm verblijfsobjecten (VOT)
+dbscan_vot:
+    params:
+     eps: 2.5
+     min_samples: 1
+     algorithm: 'ball_tree'
+     metric: 'euclidean'
+
+normen:
+    papier:
+     doel_start: 0
+     doel_end: 200
+     aandacht_start: 200
+     aandacht_end: 300
+     kritiek_start: 300
+    glas:
+     doel_start: 0
+     doel_end: 300
+     aandacht_start: 300
+     aandacht_end: 400
+     kritiek_start: 400
+    plastic:
+     doel_start: 0
+     doel_end: 250
+     aandacht_start: 250
+     aandacht_end: 350
+     kritiek_start: 350
+    textiel:
+     doel_start: 0
+     doel_end: 750
+     aandacht_start: 750
+     aandacht_end: 1500
+     kritiek_start: 1500
+    rest:
+     doel_start: 0
+     doel_end: 100
+     aandacht_start: 100
+     aandacht_end: 200
+     kritiek_start: 200
+     
+     

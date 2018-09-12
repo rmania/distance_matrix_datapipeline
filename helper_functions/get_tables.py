@@ -54,6 +54,9 @@ def get_df1(path, bag_file, add_brp_18 = None, add_brp_65 = None, plot=None):
     df = gpd.GeoDataFrame(df, crs= yml['crs']['crs'], geometry='geometry')
     df = df.drop('cl_geom', axis=1)
     
+    if bag_file == yml['file']['bag_full']:
+        df['pnd_geom'] = df['pnd_geom'].apply(lambda x: wkb.loads(x, hex=True))
+    
     if add_brp_18:
         if bag_file == yml['file']['bag_full']:
             
@@ -87,7 +90,7 @@ def get_df1(path, bag_file, add_brp_18 = None, add_brp_65 = None, plot=None):
             return df        
         else:
             print ('add_brp_65 not applicable to bag_clusters dataset')
-            
+    
     if plot:
         n=1000
         fig, ax = plt.subplots(figsize=[15,7])
@@ -102,11 +105,11 @@ def get_centroid(cluster):
     centermost_point = min(cluster, key=lambda point: (point.all(), centroid))
     return tuple(centermost_point)
 
-def dbscan_reduce(df, x='x', y='y'):
+def dbscan_reduce_afvalcontainers(df, x='x', y='y'):
     start_time = time.time()
     # matrix of np arrays 
     coords = df[['y', 'x']].values
-    db = (DBSCAN(**yml['dbscan']['params']).fit(coords))
+    db = (DBSCAN(**yml['dbscan_afvalcontainers']['params']).fit(coords))
     
     cluster_labels = db.labels_
     num_clusters = len(set(cluster_labels))
@@ -124,6 +127,33 @@ def dbscan_reduce(df, x='x', y='y'):
     rs = gpd.GeoDataFrame(rs, geometry = 'geometry', crs = yml['crs']['crs'])
     
     logger.info("Clustered {:,} afvalcontainers down to {:,} inzamellocaties, for {:.2f}% compression in {:,.2f} sec.".format(
+                   len(df), len(rs), 100*(1 - float(len(rs)) / len(df)), time.time()-start_time))
+    
+    return rs
+
+
+def dbscan_reduce_vot(df, x='x', y='y'):
+    start_time = time.time()
+    # matrix of np arrays 
+    coords = df[['y', 'x']].values
+    db = (DBSCAN(**yml['dbscan_vot']['params']).fit(coords))
+    
+    cluster_labels = db.labels_
+    num_clusters = len(set(cluster_labels))
+       
+    clusters = pd.Series([coords[cluster_labels==n] for n in range(num_clusters)])
+    
+    # find point in each cluster closest to its centroid
+    centermost_points = clusters.map(get_centroid)
+
+    # unzip list of centermost points (lat, lon) 
+    lats, lons = zip(*centermost_points)
+    rep_points = pd.DataFrame({x:lons, y:lats})
+       
+    rs = rep_points.apply(lambda row: df[(df[y]==row[y]) & (df[x]==row[x])].iloc[0], axis=1)
+    rs = gpd.GeoDataFrame(rs, geometry = 'geometry', crs = yml['crs']['crs'])
+    
+    logger.info("Clustered {:,} verblijfsobjecten down to {:,} vot_clusters, for {:.2f}% compression in {:,.2f} sec.".format(
                    len(df), len(rs), 100*(1 - float(len(rs)) / len(df)), time.time()-start_time))
     
     return rs
@@ -224,7 +254,7 @@ def get_df2(path, file, plot=bool):
     logger.info("Spatial join of {} GeoDataFrame and Amsterdam district layer. \
     Added columns : {}".format(file, std.columns.tolist()))
         
-    if file == ah:
+    if file == yml['file']['ah']:
         buffer = 1000
         df['buffer'] = df['geometry'].buffer(buffer)
         logger.info("created {} meter buffer around {} geometry".format(
