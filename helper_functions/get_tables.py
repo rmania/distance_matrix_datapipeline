@@ -280,6 +280,9 @@ def get_stag_table_huur():
     df['pnd_geom'] = df['pnd_geom'].apply(lambda x: wkt.loads(x))
     df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
     
+    logger.info("GeoDataFrame has shape: {} and crs: {}".format(
+                 df.shape, crs))
+    
     return df
 
 def get_stag_table_koop():
@@ -287,6 +290,9 @@ def get_stag_table_koop():
     df['geometry'] = df['geometry'].apply(lambda x: wkt.loads(x))
     df['pnd_geom'] = df['pnd_geom'].apply(lambda x: wkt.loads(x))
     df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
+    
+    logger.info("GeoDataFrame has shape: {} and crs: {}".format(
+                 df.shape, crs))
     
     return df
 
@@ -296,12 +302,34 @@ def get_stag_table18():
     df['pnd_geom'] = df['pnd_geom'].apply(lambda x: wkt.loads(x))
     df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
     
+    logger.info("GeoDataFrame has shape: {} and crs: {}".format(
+                 df.shape, crs))
+    
     return df
 
 def get_stag_table65():
     df = pd.read_csv(yml['path']['data_stag_tables'] + yml['file_stag_tables']['clusters65'], dtype=str)
     df['geometry'] = df['geometry'].apply(lambda x: wkt.loads(x))
     df['pnd_geom'] = df['pnd_geom'].apply(lambda x: wkt.loads(x))
+    df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
+    
+    logger.info("GeoDataFrame has shape: {} and crs: {}".format(
+                 df.shape, crs))
+    
+    return df
+
+
+def get_distance_matrices(path,  file):
+    
+    """
+    load in the munged distance matrices resulting from function 
+    distance_matrix/deduplicate_distance_matrix_.. 
+    """
+    df = pd.read_csv(path + file)
+    geo_cols = ['geometry', 'geom_point']
+    for col in df[geo_cols]:
+        df[col] = df[col].apply(lambda x: wkt.loads(x))
+    df = df.drop('_merge', axis=1)
     df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
     
     return df
