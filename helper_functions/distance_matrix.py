@@ -131,7 +131,7 @@ def deduplicate_distance_matrix_afval(stag_distance, df1, buffer, bovengrens):
     
     
     
-    keep_cols = ['landelijk_vot_id','landelijk_pnd_id','pnd_geom','geometry', 'cluster_toewijzing']
+    keep_cols = ['landelijk_pnd_id','pnd_geom','geometry', 'cluster_toewijzing']
     dist_agg = pd.merge(df1[keep_cols], dist_agg, on = ['cluster_toewijzing'], 
                         how='left', indicator=True)
     logger.info('Aggregated dm has shape:{}'.format(dist_agg.shape))

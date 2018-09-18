@@ -102,34 +102,64 @@ def get_df1(path, bag_file, add_brp_18 = None, add_brp_65 = None, plot=None):
 ### FUNCTIONS for clustering afvalcontainers (POI set 2)
 def get_centroid(cluster):
     centroid = (MultiPoint(cluster).centroid.x, MultiPoint(cluster).centroid.y)
-    centermost_point = min(cluster, key=lambda point: (point.all(), centroid))
-    return tuple(centermost_point)
+    #centermost_point = min(cluster, key=lambda point: (point.all(), centroid))
+    return centroid
 
-def dbscan_reduce_afvalcontainers(df, x='x', y='y'):
+def dbscan_reduce_afvalcontainers(df, fractie=None):
+    
     start_time = time.time()
-    # matrix of np arrays 
+    
     coords = df[['y', 'x']].values
+    print ('shape input frame afval_full : {}'.format(df.shape))
     db = (DBSCAN(**yml['dbscan_afvalcontainers']['params']).fit(coords))
-    
-    cluster_labels = db.labels_
-    num_clusters = len(set(cluster_labels))
-       
-    clusters = pd.Series([coords[cluster_labels==n] for n in range(num_clusters)])
-    
-    # find point in each cluster closest to its centroid
-    centermost_points = clusters.map(get_centroid)
 
-    # unzip list of centermost points (lat, lon) 
-    lats, lons = zip(*centermost_points)
-    rep_points = pd.DataFrame({x:lons, y:lats})
-       
-    rs = rep_points.apply(lambda row: df[(df[y]==row[y]) & (df[x]==row[x])].iloc[0], axis=1)
-    rs = gpd.GeoDataFrame(rs, geometry = 'geometry', crs = yml['crs']['crs'])
+    cluster_labels = db.labels_
+    print ('shape cluster_labels array: {}'.format(cluster_labels.shape))
+    num_clusters = len(set(cluster_labels))
+    print ('num_clusters: {}'.format(num_clusters))
     
-    logger.info("Clustered {:,} afvalcontainers down to {:,} inzamellocaties, for {:.2f}% compression in {:,.2f} sec.".format(
-                   len(df), len(rs), 100*(1 - float(len(rs)) / len(df)), time.time()-start_time))
+    cluster_frame = pd.DataFrame(cluster_labels).rename(columns = {0: 'cluster_toewijzing'})
     
-    return rs
+    df = df.join(cluster_frame)
+    
+    # create set with cluster centroids and cluster toewijzing
+    coords_cluster = pd.DataFrame([n for n in range(num_clusters)])
+    coords_cluster = coords_cluster.rename(columns={0 : 'cluster_toewijzing'})
+    
+    cluster_array = pd.Series([coords[cluster_labels==n] for n in range(num_clusters)])
+    centroids = cluster_array.map(get_centroid)
+    lats, lons = zip(*centroids)
+    
+    rep_points = pd.DataFrame({'x_centroid':lons, 'y_centroid':lats})
+    
+    rep_points['cl_geom'] = (rep_points.apply(lambda row: Point(row["x_centroid"], 
+                                                                row["y_centroid"]), 
+                                              axis=1))
+    
+    afval_clusters = rep_points.join(coords_cluster)
+    
+    keep_cols = ['cl_geom', 'cluster_toewijzing']
+    df = pd.merge(df, afval_clusters[keep_cols], on= ['cluster_toewijzing'], how='left')
+    
+    for drop_cols in ['x', 'y']:
+        df = df.drop(drop_cols, axis=1)
+    
+    df = df.rename(columns = {'geometry': 'point_geom', 'cl_geom': 'geometry'})
+    
+    if fractie:
+        df_fractie = (df[df.fractie == fractie]
+                      .reset_index(drop=True)
+                      .drop_duplicates(subset=['cluster_toewijzing']))
+        
+        print ("Clustered {:,} afvalcontainers down to {:,} inzamellocaties, for {:.2f}% compression in {:,.2f} sec.".format(
+                   len(df), len(df_fractie), 100*(1 - float(len(df_fractie)) / len(df)), time.time()-start_time))
+               
+        return df_fractie
+    
+    print ("Clustered {:,} afvalcontainers down to {:,} inzamellocaties, for {:.2f}% compression in {:,.2f} sec.".format(
+                   len(df), len(afval_clusters), 100*(1 - float(len(afval_clusters)) / len(df)), time.time()-start_time))
+    
+    return df
 
 
 def dbscan_reduce_vot(df, x='x', y='y'):
@@ -159,7 +189,7 @@ def dbscan_reduce_vot(df, x='x', y='y'):
     return rs
 
 
-def get_afvalcontainers_df(column_subset=None, dbscan_clustering=None):
+def get_afvalcontainers_full_df(column_subset=None):
     
     # load geojson
     params = yml['afvalcontainers']['params']
@@ -205,7 +235,7 @@ def get_afvalcontainers_df(column_subset=None, dbscan_clustering=None):
     
     if column_subset:
         keep_cols = ['container_id', 'geometry', 'fractie']
-        df = df[keep_cols]        
+        df = df[keep_cols]
     
     # to crs 28992
     df = df.to_crs(crs=yml['crs']['crs'])
@@ -216,15 +246,9 @@ def get_afvalcontainers_df(column_subset=None, dbscan_clustering=None):
     df = df[((df.x >= 110000) & (df.x <= 135000) & 
              (df.y >= 475000) & (df.y <= 494000))]
     
-    if dbscan_clustering:
-        df_clustered = dbscan_reduce_afvalcontainers(df=df)
-        
-        logger.info("Clustered GeoDataFrame has shape: {} and crs: {}".format(
-                   df_clustered.shape, df_clustered.crs))
-        
-        return df_clustered
-    
-    logger.info("Non-clustered GeoDataFrame has shape: {} and crs: {}".format(
+    df = df.reset_index(drop=True)
+    logger.info("index has been reset")
+    logger.info("Afvalcontainers_full df has shape: {} and crs: {}".format(
                  df.shape, crs))
     
     return df
@@ -273,7 +297,7 @@ def get_df2(path, file, plot=bool):
     return df
 
 
-### some quick helpers to load in the stag_tables csv and back into geoframes
+### some quick helpers to load in the stag_tables csvs and put back into geoframes
 def get_stag_table_huur():
     df = pd.read_csv(yml['path']['data_stag_tables'] + yml['file_stag_tables']['clusters_huur'], dtype=str)
     df['geometry'] = df['geometry'].apply(lambda x: wkt.loads(x))
@@ -319,7 +343,7 @@ def get_stag_table65():
     return df
 
 
-def get_distance_matrices(path,  file):
+def get_distance_matrices(path, file):
     
     """
     load in the munged distance matrices resulting from function 
@@ -331,5 +355,8 @@ def get_distance_matrices(path,  file):
         df[col] = df[col].apply(lambda x: wkt.loads(x))
     df = df.drop('_merge', axis=1)
     df = gpd.GeoDataFrame(df, geometry = 'geometry', crs=yml['crs']['crs'])
+    
+    logger.info("GeoDataFrame has shape: {} and crs: {}".format(
+                 df.shape, crs))
     
     return df
