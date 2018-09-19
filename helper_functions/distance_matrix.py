@@ -167,3 +167,47 @@ def deduplicate_distance_matrix_afval(stag_distance, df1, buffer, bovengrens):
         plt.tight_layout()
     
     return final
+
+# ========================================
+# general distance_matrix_ function
+def create_distance_matrix_general(df1, df2, buffer = int, 
+                                 include_nearest_point = None, n=int):
+    """
+    calculate distance matrix frames. See ../helper_functions/distance_matrix.py 
+    Make sure the you feed geoPandas df with a geometry column
+    args:
+        df1 : dataframe one containing geometry column (points)
+        df2 : dataframe 2 containing geometry column (points)
+        buffer: buffer in meters around the geometry column in df2 
+        include_nearest_point: Find nearest point,return corresponding value 
+        from specified column.Caution very slow on big sets.
+        n : number of iterations. set n=len(df2) to loop through full set
+    """
+    n=n  
+    logger.info('Building dm (buffer: {} with {} iterations'.format(buffer, n))
+    
+    stag_distance = []
+    
+    for i, row in enumerate(tqdm_notebook(list(df2['buffer'][:n]))):
+        sub_df = df1.loc[(df1.geometry.within(df2['buffer'][i])), :]
+        sub_df = (sub_df.apply(calculate_distance, 
+                               dest_geom= df2['geometry'][i], 
+                     target_col= 'distance', axis=1))
+        print ('Shape sub_df {} = {}'.format(i, sub_df.shape))
+        
+        if include_nearest_point:
+            indices = (sub_df.apply(find_nearest_point, 
+                          geom_union=df2.unary_union, 
+                          df1=sub_df, 
+                          df2=df2, 
+                          geom1_col='geometry', 
+                          src_column='container_id', 
+                          axis=1))
+
+            indices_frame = indices.to_frame()
+            sub_df = pd.concat([sub_df, indices_frame], axis=1)
+            stag_distance.append(sub_df)
+            
+        stag_distance.append(sub_df)
+                
+    return stag_distance
