@@ -26,11 +26,16 @@ file_stag_tables:
     inzamelloc: 'inzamelloc.csv'
     
 distance_matrix_files:
-    distance_huur_papier: 'distance_huur_papier.csv'
-    distance_huur_glas: 'distance_huur_glas.csv'
-    distance_huur_textiel: 'distance_huur_textiel.csv'
-    distance_huur_plastic: 'distance_huur_plastic.csv'
-    distance_huur_rest: 'distance_huur_rest.csv'
+    distance_huur_papier: 'distance_huur_Papier.csv'
+    distance_huur_glas: 'distance_huur_Glas.csv'
+    distance_huur_textiel: 'distance_huur_Textiel.csv'
+    distance_huur_plastic: 'distance_huur_Plastic.csv'
+    distance_huur_rest: 'distance_huur_Rest.csv'
+    distance_koop_papier: 'distance_koop_Papier.csv'
+    distance_koop_glas: 'distance_koop_Glas.csv'
+    distance_koop_textiel: 'distance_koop_Textiel.csv'
+    distance_koop_plastic: 'distance_koop_Plastic.csv'
+    distance_koop_rest: 'distance_koop_Rest.csv'
 
 # crs --    
 crs:
@@ -67,35 +72,35 @@ dbscan_vot:
 
 # afstandsnormen Gemeente Amsterdam per fractie
 normen:
-    papier:
+    Papier:
      doel_start: 0
      doel_end: 200
      aandacht_start: 200
      aandacht_end: 300
      kritiek_start: 300
      bovengrens: 301
-    glas:
+    Glas:
      doel_start: 0
      doel_end: 300
      aandacht_start: 300
      aandacht_end: 400
      kritiek_start: 400
      bovengrens: 401
-    plastic:
+    Plastic:
      doel_start: 0
      doel_end: 250
      aandacht_start: 250
      aandacht_end: 350
      kritiek_start: 350
      bovengrens: 351
-    textiel:
+    Textiel:
      doel_start: 0
      doel_end: 750
      aandacht_start: 750
      aandacht_end: 1500
      kritiek_start: 1500
      bovengrens: 1501
-    rest:
+    Rest:
      doel_start: 0
      doel_end: 100
      aandacht_start: 100
@@ -103,4 +108,105 @@ normen:
      kritiek_start: 200
      bovengrens: 201
 
-     
+vot_koop_huur: ['koop', 'huur']
+stadsdeel: ['Centrum', 'West', 'Nieuw-West', 'Zuid', 'Oost', 'Noord', 'Zuidoost']  
+buurtcombi : ['Staatsliedenbuurt',
+              'Da Costabuurt',
+              'Burgwallen-Oude Zijde',
+              'Grachtengordel-Zuid',
+              'Nieuwmarkt/Lastage',
+              'Haarlemmerbuurt',
+              'De Weteringschans',
+              'Van Galenbuurt',
+              'Hoofdweg e.o.',
+              'Overtoomse Sluis',
+              'Westindische Buurt',
+              'Slotermeer-Noordoost',
+              'Slotermeer-Zuidwest',
+              'Geuzenveld',
+              'Eendracht',
+              'Osdorp-Oost',
+              'Osdorp-Midden',
+              'De Punt',
+              'Helmersbuurt',
+              'IJselbuurt',
+              'Overtoomse Veld',
+              'Westlandgracht',
+              'Kinkerbuurt',
+              'Van Lennepbuurt',
+              'Vondelbuurt',
+              'Oude Pijp',
+              'Nieuwe Pijp',
+              'Hoofddorppleinbuurt',
+              'Schinkelbuurt',
+              'Willemspark',
+              'Museumkwartier',
+              'Apollobuurt',
+              'Rijnbuurt',
+              'Weesperzijde',
+              'Oosterparkbuurt',
+              'Transvaalbuurt',
+              'Tuindorp Buiksloot',
+              'Nieuwendammerdijk/Buiksloterdijk',
+              'Indische Buurt West',
+              'Oostzanerwerf',
+              'Indische Buurt Oost',
+              'Oostelijk Havengebied',
+              'Middenmeer',
+              'Betondorp',
+              'Volewijck',
+              'IJplein/Vogelbuurt',
+              'Tuindorp Nieuwendam',
+              'Tuindorp Oostzaan',
+              'Waterland',
+              'Lutkemeer/Ookmeer',
+              'Bijlmer Centrum (D,F,H)',
+              'Sloter-/Riekerpolder',
+              'Frederik Hendrikbuurt',
+              'Amstel III/Bullewijk',
+              'Gein',
+              'Driemond',
+              'Burgwallen-Nieuwe Zijde',
+              'Zuidas',
+              'Slotervaart Zuid',
+              'Grachtengordel-West',
+              'Stadionbuurt',
+              'Scheldebuurt',
+              'Dapperbuurt',
+              'Zeeburgereiland/Nieuwe Diep',
+              'Jordaan',
+              'Weesperbuurt/Plantage',
+              'Oostelijke Eilanden/Kadijken',
+              'Westelijk Havengebied',
+              'Buitenveldert-West',
+              'Buitenveldert-Oost',
+              'Houthavens',
+              'Sloterdijk',
+              'Spaarndammer- en Zeeheldenbuurt',
+              'Centrale Markt',
+              'IJburg Oost',
+              'Landlust',
+              'Erasmuspark',
+              'Geuzenbuurt',
+              'De Kolenkit',
+              'Chassébuurt',
+              'Bedrijventerrein Sloterdijk',
+              'IJburg West',
+              'Middelveldsche Akerpolder',
+              'Slotervaart Noord',
+              'Zuid Pijp',
+              'Prinses Irenebuurt e.o.',
+              'Omval/Overamstel',
+              'Waterlandpleinbuurt',
+              'Noordelijke IJ-oevers West',
+              'Noordelijke IJ-oevers Oost',
+              'IJburg Zuid',
+              'Frankendael',
+              'Kadoelen',
+              'Buikslotermeer',
+              'Banne Buiksloot',
+              'Elzenhagen',
+              'Bijlmer Oost (E,G,K)',
+              'Nellestein',
+              'Holendrecht/Reigersbos']
+
