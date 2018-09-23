@@ -211,3 +211,60 @@ def create_distance_matrix_general(df1, df2, buffer = int,
         stag_distance.append(sub_df)
                 
     return stag_distance
+
+def deduplicate_distance_matrix_general(stag_distance, df1, buffer):
+    
+    """
+    steps to munge the raw distance matrix into a clean deduplicated version
+    args:
+        stag_distance: frame resulting from create_distance_matrix_afval function
+        df1 : same dataframe one containing geometry column (points) as fed to the create_distance_matrix_afval function
+    """
+    
+    stag_dm = pd.concat(stag_distance, axis=0, sort=False)
+    stag_dm.distance = stag_dm['distance'].astype(float)
+    logger.info('Raw dm has shape:{}'.format(stag_dm.shape))
+    
+    
+    dist_agg = stag_dm.groupby(['cluster_toewijzing']).agg(f).reset_index()
+    dist_agg.columns = [f'{i}_{j}' if j != '' else f'{i}' for i,j in dist_agg.columns]
+    
+    
+    
+    keep_cols = ['landelijk_pnd_id','pnd_geom','geometry', 'cluster_toewijzing']
+    dist_agg = pd.merge(df1[keep_cols], dist_agg, on = ['cluster_toewijzing'], 
+                        how='left', indicator=True)
+    logger.info('Aggregated dm has shape:{}'.format(dist_agg.shape))
+    logger.info('merge results:\n{}'.format(dist_agg._merge.value_counts()))
+    
+    
+    distance_cols = ['distance_min', 'distance_max', 'distance_mean']
+    for col in dist_agg[distance_cols]:
+        dist_agg[col] = (dist_agg[col].astype(float).multiply(1000).fillna(buffer + 1)
+                                 .map('{:.0f}'.format))
+        dist_agg[col] = dist_agg[col].astype(int)   
+    logger.info('Filled values above the {} buffer boundaries with value: {}'\
+               .format(buffer, buffer + 1))
+    
+    # we want to plot on pnd_geom, Geopandas only accepts 'geometry' for plotting, so:
+    dist_agg = dist_agg.rename(columns = {'geometry': 'geom_point', 'pnd_geom': 'geometry'})
+    
+    pnd_mean_dist = dist_agg.groupby(['landelijk_pnd_id'])['distance_min'].mean().to_frame().reset_index()
+    pnd_mean_dist = pnd_mean_dist.rename(columns={'distance_min': 'pnd_dist_mean'})
+    pnd_mean_dist.pnd_dist_mean = pnd_mean_dist.pnd_dist_mean.map('{:.0f}'.format)
+    
+    final = pd.merge(dist_agg, pnd_mean_dist, on=['landelijk_pnd_id'], how='left')
+    logger.info('Final dm has shape:{}'.format(final.shape))
+    logger.info('columns dm {}'.format(final.columns.tolist()))
+    
+    # plot histograms 
+    num_cols = ['distance_min', 'distance_max', 'distance_mean']
+    fig, ax = plt.subplots(len(num_cols), 1, figsize= [9,6])
+    
+    print ('histogram numerical distance columns: ')
+    for i, col in enumerate(final[num_cols].columns):
+        final[final.distance_min <= buffer][col].dropna().hist(bins=40, ax=ax[i])
+        ax[i].set_title(col)
+        plt.tight_layout()
+    
+    return final

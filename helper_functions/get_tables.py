@@ -294,7 +294,8 @@ def get_df2(path, file, plot=bool):
         ax = std.plot(ax=ax)
         df.plot(ax=ax, color='red', alpha=.5, marker = '*')
         gpd.GeoSeries(df.geometry.buffer(buffer)).plot(ax=ax, color='yellow', alpha=.085)
-    return df
+        
+    return df.reset_index(drop=True)
 
 
 ### some quick helpers to load in the stag_tables csvs and put back into geoframes
